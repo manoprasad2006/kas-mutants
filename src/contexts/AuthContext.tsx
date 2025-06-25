@@ -26,70 +26,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
     setLoading(true)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          const { error } = await supabase
-            .from('users')
-            .upsert({
-              id: session.user.id,
-              email: session.user.email || '',
-              google_uid: session.user.user_metadata?.sub || session.user.id,
-            })
-          
-          if (error) {
-            console.error('Error creating user profile:', error)
-          }
-        }
-        
-        setLoading(false)
-      }
-    )
 
-    // Set initial user state
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      if (!mounted) return
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
     return () => {
+      mounted = false
       subscription.unsubscribe()
     }
   }, [])
 
   const signInWithGoogle = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
         }
-      })
-      if (error) {
-        console.error('Error signing in:', error)
-        throw error
       }
-    } catch (error) {
-      console.error('Sign in error:', error)
-      throw error
-    }
+    })
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Error signing out:', error)
-      throw error
-    }
+    await supabase.auth.signOut()
   }
 
   const value = {

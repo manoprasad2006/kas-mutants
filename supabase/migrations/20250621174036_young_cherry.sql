@@ -21,6 +21,7 @@
       - `user_id` (uuid, foreign key) - references users table
       - `collection_id` (uuid, foreign key) - references collections table
       - `nft_ids` (text array) - array of selected NFT IDs
+      - `nft_details` (jsonb) - Store detailed NFT info including rarity rank
       - `rarity_weights` (numeric) - calculated total weight including bonuses
       - `bonus_eligible` (boolean) - whether user has minted $MUTANT token
       - `status` (text) - submission status (submitted, reward_sent, pending)
@@ -36,6 +37,16 @@
       - `user_id` (uuid, foreign key) - references users table
       - `week` (text) - week identifier (YYYY-WW format)
       - `reward_sent` (boolean) - whether reward has been sent for this week
+
+    - `user_nfts`
+      - `id` (uuid, primary key)
+      - `user_id` (uuid, foreign key) - references users table
+      - `ticker` (text) - MUTANT, MUTANT2, PXMUTANT, KASMUTANT
+      - `token_id` (text) - NFT token ID
+      - `name` (text) - NFT name
+      - `image_url` (text) - NFT image URL
+      - `rarity_rank` (integer) - NFT rarity rank
+      - `fetched_at` (timestamp) - when NFT data was fetched
 
   2. Security
     - Enable RLS on all tables
@@ -72,6 +83,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   collection_id uuid NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
   nft_ids text[] NOT NULL DEFAULT '{}',
+  nft_details jsonb NOT NULL DEFAULT '[]', -- Store detailed NFT info including rarity rank
   rarity_weights numeric NOT NULL DEFAULT 0,
   bonus_eligible boolean NOT NULL DEFAULT false,
   status text NOT NULL DEFAULT 'submitted',
@@ -94,12 +106,26 @@ CREATE TABLE IF NOT EXISTS admin_status (
   PRIMARY KEY (user_id, week)
 );
 
+-- Create user_nfts table to store fetched NFT data
+CREATE TABLE IF NOT EXISTS user_nfts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  ticker text NOT NULL, -- MUTANT, MUTANT2, PXMUTANT, KASMUTANT
+  token_id text NOT NULL,
+  name text NOT NULL,
+  image_url text,
+  rarity_rank integer,
+  fetched_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, ticker, token_id)
+);
+
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leaderboard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_status ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_nfts ENABLE ROW LEVEL SECURITY;
 
 -- Users policies
 CREATE POLICY "Users can read own data"
@@ -183,6 +209,31 @@ CREATE POLICY "Leaderboard is publicly readable"
 CREATE POLICY "Users can read own admin status"
   ON admin_status
   FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- User NFTs policies
+CREATE POLICY "Users can read own NFTs"
+  ON user_nfts
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own NFTs"
+  ON user_nfts
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own NFTs"
+  ON user_nfts
+  FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own NFTs"
+  ON user_nfts
+  FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
 

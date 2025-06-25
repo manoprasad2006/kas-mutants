@@ -44,6 +44,7 @@ export type Database = {
           user_id: string
           collection_id: string
           nft_ids: string[]
+          nft_details: any[] // JSONB array of NFT details
           rarity_weights: number
           bonus_eligible: boolean
           status: string
@@ -54,6 +55,7 @@ export type Database = {
           user_id: string
           collection_id: string
           nft_ids: string[]
+          nft_details?: any[] // JSONB array of NFT details
           rarity_weights: number
           bonus_eligible: boolean
           status?: string
@@ -64,10 +66,43 @@ export type Database = {
           user_id?: string
           collection_id?: string
           nft_ids?: string[]
+          nft_details?: any[] // JSONB array of NFT details
           rarity_weights?: number
           bonus_eligible?: boolean
           status?: string
           submitted_at?: string
+        }
+      }
+      user_nfts: {
+        Row: {
+          id: string
+          user_id: string
+          ticker: string
+          token_id: string
+          name: string
+          image_url: string | null
+          rarity_rank: number | null
+          fetched_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          ticker: string
+          token_id: string
+          name: string
+          image_url?: string | null
+          rarity_rank?: number | null
+          fetched_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          ticker?: string
+          token_id?: string
+          name?: string
+          image_url?: string | null
+          rarity_rank?: number | null
+          fetched_at?: string
         }
       }
       leaderboard: {

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import DebugInfo from './components/DebugInfo'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import StakingForm from './pages/StakingForm'
@@ -29,6 +30,7 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
+        <DebugInfo />
       </Router>
     </AuthProvider>
   )
